@@ -4,6 +4,10 @@ import java.util.*
 
 class Cell (val x: Int, val y: Int, var isMine: Boolean) {
     var isVisible = false
+    var isMarked = false
+        set(value) {
+            field = if (neighbors in 1..9) false else value
+        }
     var neighbors = 0
         set(value) { field = when {
             isMine -> -1
@@ -14,8 +18,15 @@ class Cell (val x: Int, val y: Int, var isMine: Boolean) {
             }
         }
         }
+    fun mark() {
+        this.isMarked = true
+    }
+    fun unMark() {
+        this.isMarked = false
+    }
     fun print(showHidden: Boolean) {
         print(when {
+            isMarked -> '*'
             isMine && (showHidden || isVisible) -> 'X'
             !isMine && (showHidden || isVisible) && neighbors != 0 -> neighbors
             !showHidden && !isVisible -> '.'
@@ -25,7 +36,7 @@ class Cell (val x: Int, val y: Int, var isMine: Boolean) {
 
 }
 
-class MineField {
+class MineField : Iterable<Cell> {
     val sizeX: Int
     val sizeY: Int
     val minesAtStart: Int
@@ -81,17 +92,56 @@ class MineField {
         else Cell(x, y, false)
 
     }
+
+    fun setCell(cell: Cell) {
+        mineField[cell.x][cell.y] = cell
+    }
     private fun isAdd(minesRemains: Int, cellsRemains: Int) = (minesRemains.toDouble() / cellsRemains) > Math.random()
 
     fun print(showHidden: Boolean) {
+
+        println(" │123456789│")
+        println("—│—————————│")
         for (row in mineField) {
+            print("${row[0].x + 1}|")
             for (cell in row) {
                 cell.print(showHidden)
             }
-            println()
+            println("|")
         }
+        println("—│—————————│")
     }
 
+    /**
+     * Returns an iterator over the elements of this object.
+     */
+    override fun iterator(): Iterator<Cell> = MineFieldIterator(this)
+}
+
+class MineFieldIterator(private val mineField: MineField) : Iterator<Cell>  {
+    private var x = 0
+    private var y = 0
+
+    /**
+     * Returns `true` if the iteration has more elements.
+     */
+    override fun hasNext(): Boolean {
+        return x != mineField.sizeX - 1 || y != mineField.sizeY - 1
+    }
+
+    /**
+     * Returns the next element in the iteration.
+     */
+    override fun next(): Cell {
+        val cell = mineField.getCell(x, y)
+        if (x != mineField.sizeX - 1) {
+            x++
+        } else {
+            x = 0
+            y++
+        }
+        return cell
+    }
 
 }
 
@@ -100,8 +150,29 @@ fun main() {
     println("How many mines do you want on the field?")
     val mines = sc.nextInt()
     val f = MineField(9, 9, mines)
-    f.print(true)
 
+
+    f.print(false)
+    while (true) {
+        print("Set/delete mines marks (x and y coordinates): ")
+        val x = sc.nextInt()
+        val y = sc.nextInt()
+        val currentCell = f.getCell(y - 1, x - 1)
+        if (currentCell.neighbors in 1..8) {
+            println("There is a number here!")
+        } else {
+            currentCell.isMarked = !currentCell.isMarked
+            f.print(false)
+            var win = true
+            for (cell in f) {
+                if (cell.isMarked != cell.isMine) {
+                    win = false
+                }
+            }
+            if (win) break
+        }
+    }
+    println("Congratulations! You found all the mines!")
 
 
 }
