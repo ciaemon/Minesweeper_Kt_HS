@@ -11,7 +11,7 @@ fun main() {
     f.print()
     var firstMove = true
     while (!f.checkWin()) {
-        print("Set/unset mine marks or claim a cell as free: ” ")
+        print("Set/unset mine marks or claim a cell as free: ")
         val x = sc.nextInt()
         val y = sc.nextInt()
         val toMine = sc.nextLine() == "mine"
@@ -32,8 +32,8 @@ fun main() {
                 message = "You stepped on a mine and failed!"
                 break
             }
-
         }
+        f.print()
     }
 
 
