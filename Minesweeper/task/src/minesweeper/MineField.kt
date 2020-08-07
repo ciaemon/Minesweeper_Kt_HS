@@ -5,6 +5,7 @@ package minesweeper
  * val sizeX: Int
  * val sizeY: Int - sizes of the playfield
  * val minesAtStart: Int - amount of mines on the playfield
+ *
  */
 class MineField : Iterable<Cell> {
     val sizeX: Int
@@ -13,7 +14,7 @@ class MineField : Iterable<Cell> {
 
     private val mineField: Array<Array<Cell>>
 
-    private val vectors =
+    private val vectors = // useful for checking adjacent cells
             arrayOf(Pair(-1, -1), Pair(-1, 0), Pair(-1, 1),
                     Pair(0, -1), Pair(0, 1),
                     Pair(1, -1), Pair(1, 0), Pair(1, 1))
@@ -23,33 +24,49 @@ class MineField : Iterable<Cell> {
         this.sizeY = sizeY
         // in case of incorrect value minesAtStart is set to maximum possible value
         this.minesAtStart = if (mines in 0..sizeX * sizeY) mines else sizeX * sizeY - 1
-        mineField = Array(sizeX) {i -> Array(sizeY) {j -> Cell(i, j, false) } }
+        mineField = Array(sizeX) {i -> Array(sizeY) {j -> Cell(j + 1, i + 1, false) } }
         renew()
         calculateAdjacent()
     }
+
+
     /**
-     * Shuffles mines on playfield. Cell with coordinates (x, y) will be free
+     * Shuffles mines on playfield. Cell with coordinates (x, y) will be free.
      */
-    fun renew(x: Int = -1, y: Int = -1) {
-        var mines = minesAtStart
-        var cells = sizeX * sizeY
-        if (x in 0..sizeX && y in 0..sizeY) cells--
-        for (i in 0 until sizeX) {
-            for (j in 0 until sizeY) {
+    fun renew(x: Int = 0, y: Int = 0) {
+        var mines = minesAtStart // Current amount of mines to be distributed
+        var cells = sizeX * sizeY // Remaining amount of cells
+
+        if (x in 1..sizeX && y in 1..sizeY) {
+            cells-- //subtracting starting move
+        }
+
+        for (i in 1..sizeX) {
+            for (j in 1..sizeY) {
+
                 if (i == x && j == y) {
-                    continue
+                    continue // skipping starting cell
                 }
+
                 if (isAdd(mines, cells)) {
                     mines--
-                    mineField[i][j].isMine = true
+                    getCell(i, j).isMine = true
                 } else {
-                    mineField[i][j].isMine = false
+                    getCell(i, j).isMine = false
                 }
-                // resetting cell status
-                mineField[i][j].isVisible = false
+                getCell(i, j).isVisible = false // cell is invisible after renew
                 cells--
             }
         }
+    }
+
+    private fun adjacentCells(x: Int, y: Int): Array<Cell> {
+        val res = Array<Cell>(8) {_ -> Cell(0, 0, false)}
+        var index = 0
+        for (pair in vectors) {
+            res[index] = getCell(x + pair.first, y + pair.second)
+        }
+        return res
     }
 
     /**
@@ -57,24 +74,24 @@ class MineField : Iterable<Cell> {
      */
     fun calculateAdjacent() {
 
-        for (i in 0 until sizeX) {
-            for (j in 0 until sizeY) {
-                var neighbours = 0;
-                for (pair in vectors) {
-                    if (getCell(i + pair.first, j + pair.second).isMine) neighbours++
+        for (cell in this) {
+            var neighbours = 0
+            for (adjCell in adjacentCells(cell.x, cell.y)) {
+                if (adjCell.isMine) {
+                    neighbours++
                 }
-                getCell(i, j).adjacentMines = neighbours
-
             }
+            cell.adjacentMines = neighbours
         }
+
 
     }
 
     /**
-     * return cell with coordinates (x, y)
+     * return cell with coordinates (x, y). If coordinates are out of range return new free Cell with given coordinates
      */
     fun getCell(x: Int, y: Int): Cell {
-        return if (x in 0 until sizeX && y in 0 until sizeY) mineField[x][y]
+        return if (x in 1..sizeX && y in 1..sizeY) mineField[y - 1][x - 1]
         else Cell(x, y, false)
 
     }
@@ -83,22 +100,23 @@ class MineField : Iterable<Cell> {
      * Replace cell in minefield
      */
     fun setCell(cell: Cell) {
-        mineField[cell.x][cell.y] = cell
+        mineField[cell.y - 1][cell.x - 1] = cell
     }
 
     /**
      * Reveals cell with coordinates x, y and returns false if cell contains mine
      */
     fun reveal(x: Int, y: Int): Boolean {
-
-        if (mineField[x][y].isMine) {
+        val cell = getCell(x, y)
+        if (getCell(x, y).isMine) {
             return false
         }
-        if (x in 0 until sizeX && y in 0 until sizeY) {
-            mineField[x][y].isVisible = true
-            if (mineField[x][y].adjacentMines == 0) {
-                for (pair in vectors) {
-                    reveal(x + pair.first, y + pair.second)
+
+        if (x in 1..sizeX && y in 1..sizeY) {
+            cell.isVisible = true
+            if (cell.adjacentMines == 0) {
+                for (adjCell in adjacentCells(cell.x, cell.y)) {
+                    reveal(adjCell.x, adjCell.y)
                 }
             }
         }
@@ -115,7 +133,7 @@ class MineField : Iterable<Cell> {
         println(" │123456789│")
         println("—│—————————│")
         for (row in mineField) {
-            print("${row[0].x + 1}|")
+            print("${row[0].y}|")
             for (cell in row) {
                 cell.print(showHidden)
             }

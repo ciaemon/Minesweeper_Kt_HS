@@ -2,8 +2,8 @@ package minesweeper
 
 /**
  * Class Cell represents cell in Minesweeper playfield. It has several fields
- * val x: Int
- * val y: Int - Coordinates of cell opn playfield
+ * val x: Int - column number (from 1 to sizeX)
+ * val y: Int - row number (from 1 to sizeY)
  * var isMine: boolean - check if cell contains a mine
  * var isVisible: Boolean - checks if cell is visible and not hidden
  * var isMarked: Boolean - checks if cell is marked as a mine. Only hidden cells can be marked
