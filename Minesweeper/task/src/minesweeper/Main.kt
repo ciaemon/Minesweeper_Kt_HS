@@ -1,6 +1,5 @@
 package minesweeper
 
-import java.security.InvalidParameterException
 import java.util.*
 
 fun main() {
