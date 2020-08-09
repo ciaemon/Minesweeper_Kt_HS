@@ -1,5 +1,7 @@
 package minesweeper
 
+import java.security.InvalidParameterException
+
 /**
  * Class that represents playfield. The class  has following public fields:
  * val sizeX: Int
@@ -7,24 +9,21 @@ package minesweeper
  * val minesAtStart: Int - amount of mines on the playfield
  *
  */
-class MineField : Iterable<Cell> {
+class MineField : Iterable<MineField.Cell> {
     val sizeX: Int
     val sizeY: Int
     val minesAtStart: Int
 
     private val mineField: Array<Array<Cell>>
 
-    private val vectors = // useful for checking adjacent cells
-            arrayOf(Pair(-1, -1), Pair(-1, 0), Pair(-1, 1),
-                    Pair(0, -1), Pair(0, 1),
-                    Pair(1, -1), Pair(1, 0), Pair(1, 1))
+
 
     constructor(sizeX: Int, sizeY: Int, mines: Int) {
         this.sizeX = sizeX
         this.sizeY = sizeY
         // in case of incorrect value minesAtStart is set to maximum possible value
         this.minesAtStart = if (mines in 0..sizeX * sizeY) mines else sizeX * sizeY - 1
-        mineField = Array(sizeX) {i -> Array(sizeY) {j -> Cell(j + 1, i + 1, false) } }
+        mineField = Array(sizeX) {i -> Array(sizeY) {j -> Cell( i + 1, j + 1, false) } }
         renew()
         calculateAdjacent()
     }
@@ -45,7 +44,8 @@ class MineField : Iterable<Cell> {
             for (j in 1..sizeY) {
 
                 if (i == x && j == y) {
-                    continue // skipping starting cell
+                    getCell(i, j).isMine = false
+                    continue // starting cell
                 }
 
                 if (isAdd(mines, cells)) {
@@ -58,25 +58,17 @@ class MineField : Iterable<Cell> {
                 cells--
             }
         }
+        calculateAdjacent()
     }
 
-    private fun adjacentCells(x: Int, y: Int): Array<Cell> {
-        val res = Array<Cell>(8) {_ -> Cell(0, 0, false)}
-        var index = 0
-        for (pair in vectors) {
-            res[index] = getCell(x + pair.first, y + pair.second)
-        }
-        return res
-    }
-
-    /**
+     /**
      * Calculates adjacent mines value for all cells
      */
     fun calculateAdjacent() {
 
         for (cell in this) {
             var neighbours = 0
-            for (adjCell in adjacentCells(cell.x, cell.y)) {
+            for (adjCell in cell) {
                 if (adjCell.isMine) {
                     neighbours++
                 }
@@ -91,7 +83,7 @@ class MineField : Iterable<Cell> {
      * return cell with coordinates (x, y). If coordinates are out of range return new free Cell with given coordinates
      */
     fun getCell(x: Int, y: Int): Cell {
-        return if (x in 1..sizeX && y in 1..sizeY) mineField[y - 1][x - 1]
+        return if (x in 1..sizeX && y in 1..sizeY) mineField[x - 1][y - 1]
         else Cell(x, y, false)
 
     }
@@ -100,12 +92,13 @@ class MineField : Iterable<Cell> {
      * Replace cell in minefield
      */
     fun setCell(cell: Cell) {
-        mineField[cell.y - 1][cell.x - 1] = cell
+        mineField[cell.x - 1][cell.y - 1] = cell
     }
 
     /**
      * Reveals cell with coordinates x, y and returns false if cell contains mine
      */
+   /*
     fun reveal(x: Int, y: Int): Boolean {
         val cell = getCell(x, y)
         if (getCell(x, y).isMine) {
@@ -122,7 +115,7 @@ class MineField : Iterable<Cell> {
         }
         return true
     }
-
+*/
     private fun isAdd(minesRemains: Int, cellsRemains: Int) = (minesRemains.toDouble() / cellsRemains) > Math.random()
 
     /**
@@ -130,16 +123,20 @@ class MineField : Iterable<Cell> {
      */
     fun print(showHidden: Boolean = false) {
 
-        println(" │123456789│")
-        println("—│—————————│")
+        print(" |")
+        for (i in 1..sizeY) {
+            print(i)
+        }
+        println("|")
+        println("—│${"-".repeat(sizeY)}│")
         for (row in mineField) {
-            print("${row[0].y}|")
+            print("${row[0].x}|")
             for (cell in row) {
                 cell.print(showHidden)
             }
             println("|")
         }
-        println("—│—————————│")
+        println("—│${"-".repeat(sizeY)}│")
     }
 
     /**
@@ -163,6 +160,116 @@ class MineField : Iterable<Cell> {
     fun checkWinningCondition(winCondition: (checkedCell: Cell) -> Boolean): Boolean {
         for (cell in this) {
             if (!winCondition(cell)) return false
+        }
+        return true
+    }
+
+    /**
+     * Class Cell represents cell in Minesweeper playfield. It has several fields
+     * val x: Int - column number (from 1 to sizeX)
+     * val y: Int - row number (from 1 to sizeY)
+     * var isMine: boolean - check if cell contains a mine
+     * var isVisible: Boolean - checks if cell is visible and not hidden
+     * var isMarked: Boolean - checks if cell is marked as a mine. Only hidden cells can be marked
+     * var neighbours: Int - number of mines adjacent to this cell. Neighbours is -1 for cells with mines
+     */
+    inner class Cell (val x: Int, val y: Int, var isMine: Boolean) : Iterable<MineField.Cell> {
+        var isVisible = false
+        var isMarked = false
+            set(value) {
+                field = if (isVisible) false else value // Only hidden cells can be marked
+            }
+        var adjacentMines = 0
+            set(value) { field = when {
+                isMine -> -1 // adjacentMines is -1 for cells with mines
+                value in 0..8 -> value
+                else -> 0 // default value if out of bound
+            }
+            }
+
+        /**
+         * Prints character for this cell
+         */
+        fun print(showHidden: Boolean) {
+            print(when {
+                isMarked && !isVisible-> '*' // marked mine symbol
+                isMine && (showHidden || isVisible) -> 'X' // mine symbol
+                adjacentMines > 0 && (showHidden || isVisible) -> adjacentMines // number of adjacent mines
+                isVisible && adjacentMines == 0 -> '/' // if cell have no adjacent mines
+                else -> '.' // hidden and unmarked cell
+            })
+        }
+
+        fun changeMark() {
+            isMarked = !isMarked
+        }
+
+        /**
+         * Reveals cell and return false if it contains mine
+         */
+        fun reveal(): Boolean {
+            if (isMine) {
+                return false
+            }
+
+            if (x in 1..sizeX && y in 1..sizeY) {
+                isVisible = true
+                if (adjacentMines == 0) {
+                    for (adjCell in this) {
+                        adjCell.reveal()
+                    }
+                }
+            }
+            return true
+        }
+
+        /**
+         * Returns an iterator over the elements of this object.
+         */
+        override fun iterator(): Iterator<Cell> = AdjacentCellsIterator(this)
+
+    }
+    
+    /**
+     * Iterator for cell through all adjacent cells
+     */
+    inner class AdjacentCellsIterator(private val cell: Cell) : Iterator<Cell> {
+
+        private val vectorsIterator = arrayOf(
+                Pair(-1, -1), Pair(-1, 0), Pair(-1, 1),
+                Pair(0, -1), Pair(0, 1),
+                Pair(1, -1), Pair(1, 0), Pair(1, 1))
+                .iterator()
+        /**
+         * Returns `true` if the iteration has more elements.
+         */
+        override fun hasNext(): Boolean = vectorsIterator.hasNext()
+
+
+        /**
+         * Returns the next element in the iteration.
+         */
+        override fun next(): Cell {
+            val currentVector = vectorsIterator.next()
+            return getCell(cell.x + currentVector.first, cell.y + currentVector.second)
+        }
+
+    }
+
+    fun execute(command: Command): Boolean {
+        val x = command.col
+        val y = command.row
+        if (x !in 1..sizeX) {
+            throw InvalidParameterException("x value is out of range!")
+        }
+        if (y !in 1..sizeY) {
+            throw InvalidParameterException("y value is out of range!")
+        }
+        if (command.isReveal) {
+            return getCell(x, y).reveal()
+
+        } else {
+            getCell(x, y).changeMark()
         }
         return true
     }
