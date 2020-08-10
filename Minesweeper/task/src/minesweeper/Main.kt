@@ -30,6 +30,7 @@ fun main() {
                         cell.isVisible = true
                     }
                 }
+                f.print()
                 break
             }
         } catch (e: Exception) {

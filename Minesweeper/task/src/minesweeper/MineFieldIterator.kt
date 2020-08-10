@@ -11,7 +11,7 @@ class MineFieldIterator(private val mineField: MineField) : Iterator<MineField.C
      * Returns `true` if the iteration has more elements.
      */
     override fun hasNext(): Boolean {
-        return x <= mineField.sizeX
+        return y <= mineField.sizeY
     }
 
     /**
@@ -19,11 +19,11 @@ class MineFieldIterator(private val mineField: MineField) : Iterator<MineField.C
      */
     override fun next(): MineField.Cell {
         val cell = mineField.getCell(x, y)
-        if (y != mineField.sizeY) {
-            y++
-        } else {
-            y = 1
+        if (x != mineField.sizeX) {
             x++
+        } else {
+            x = 1
+            y++
         }
         return cell
     }

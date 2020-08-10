@@ -100,19 +100,22 @@ class MineField(val sizeX: Int, val sizeY: Int, mines: Int) : Iterable<MineField
     fun print(showHidden: Boolean = false) {
 
         print(" |")
-        for (i in 1..sizeY) {
+        for (i in 1..sizeX) {
             print(i)
         }
         println("|")
-        println("—│${"-".repeat(sizeY)}│")
-        for (row in mineField) {
-            print("${row[0].x}|")
-            for (cell in row) {
-                cell.print(showHidden)
+        println("—│${"-".repeat(sizeX)}│")
+        for (cell in this) {
+            if (cell.x == 1) {
+                print("${cell.y}|")
             }
-            println("|")
+            cell.print(showHidden)
+            if (cell.x == sizeX) {
+                println("|")
+            }
+
         }
-        println("—│${"-".repeat(sizeY)}│")
+        println("—│${"-".repeat(sizeX)}│")
     }
 
     /**

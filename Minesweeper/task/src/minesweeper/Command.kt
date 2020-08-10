@@ -19,7 +19,7 @@ class Command(sc: Scanner) {
         } else {
             throw InvalidParameterException("y must be integer number! ")
         }
-        isReveal = when (sc.nextLine().trim()) {
+        isReveal = when (sc.nextLine().trim().toLowerCase()) {
             "free" -> true
             "mine" -> false
             else -> throw InvalidParameterException("Choose 'free' or 'mine' as third argument!")
